@@ -12,7 +12,7 @@ import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
 
 /**
- * @title:
+ * @title: process函数，限流
  * @author: zhangyf
  * @date: 2023/6/13 10:31
  **/

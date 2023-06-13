@@ -5,6 +5,6 @@ package com.byt.func;
  * @author: zhangyf
  * @date: 2023/6/13 9:49
  **/
-public interface ToSendMailFunction<T> {
+public interface ToSendMsgFunction<T> {
     String getMsg(T input);
 }

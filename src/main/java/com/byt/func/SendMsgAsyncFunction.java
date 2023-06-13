@@ -1,7 +1,6 @@
 package com.byt.func;
 
 import com.byt.utils.HttpUtil;
-import com.byt.utils.MailUtil;
 import com.byt.utils.ThreadPoolUtil;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.async.ResultFuture;
@@ -14,7 +13,7 @@ import java.util.concurrent.ExecutorService;
  * @author: zhangyf
  * @date: 2023/6/13 9:42
  **/
-public abstract class SendMailAsyncFunction<T> extends RichAsyncFunction<T, T> implements ToSendMailFunction<T> {
+public abstract class SendMsgAsyncFunction<T> extends RichAsyncFunction<T, T> implements ToSendMsgFunction<T> {
     private ExecutorService executorService;
 
     @Override
