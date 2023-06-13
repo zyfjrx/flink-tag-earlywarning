@@ -16,4 +16,6 @@ public class TagProperties {
     public Integer id;
     public String tag_name;
     public String tag_topic;
+    public String send_period; // 发送周期
+    public Integer send_times; // 发送次数
 }

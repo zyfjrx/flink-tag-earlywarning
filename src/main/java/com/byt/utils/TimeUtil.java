@@ -14,6 +14,14 @@ public class TimeUtil {
     public static String getCurrentTimeStr() {
         SimpleDateFormat sdf = new SimpleDateFormat();// 格式化时间
 //        sdf.applyPattern("yyyyMMddHHmmss");// a为am/pm的标记
+        sdf.applyPattern("yyyy-MM-dd");// a为am/pm的标记
+        Date date = new Date();// 获取当前时间
+        return sdf.format(date);
+    }
+
+    public static String getCurrentTimeString() {
+        SimpleDateFormat sdf = new SimpleDateFormat();// 格式化时间
+//        sdf.applyPattern("yyyyMMddHHmmss");// a为am/pm的标记
         sdf.applyPattern("yyyy-MM-dd HH:mm:ss");// a为am/pm的标记
         Date date = new Date();// 获取当前时间
         return sdf.format(date);
@@ -45,12 +53,26 @@ public class TimeUtil {
         return s1;
     }
 
-//    public static void main(String[] args) {
-//        long l = getStartTime("20200830202000");
-//        System.out.println(l);
-//        System.out.println(getCurrentTimeStr());
-//        Timestamp t = Timestamp.valueOf("2021-09-27 10:11:00");
-//        System.out.println(getStartTime("2021-09-27 10:11:00"));
-//    }
+
+    public static Long toTimeMillis(String str) {
+        Long millis = null;
+        if (str.contains("h")) {
+            Long nh = Long.parseLong(str.replace("h", ""));
+            millis = nh * 60L * 60L * 1000L;
+
+        } else if (str.contains("m")) {
+            Long nm = Long.parseLong(str.replace("m", ""));
+            millis = nm * 60L * 1000L;
+        } else {
+            Long ns = Long.parseLong(str.replace("s", ""));
+            millis = ns * 1000L;
+        }
+        return millis;
+
+    }
+
+    public static void main(String[] args) {
+        System.out.println(toTimeMillis("8h"));
+    }
 
 }

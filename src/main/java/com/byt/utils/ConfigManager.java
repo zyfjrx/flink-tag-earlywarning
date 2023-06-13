@@ -48,7 +48,7 @@ public class ConfigManager {
     }
 
     public static List<String> getListProperty(String key) {
-        System.out.println("正在读取topic"+Arrays.asList(prop.getProperty(key).split(",")));
+        //System.out.println("正在读取topic"+Arrays.asList(prop.getProperty(key).split(",")));
         return Arrays.asList(prop.getProperty(key).split(","));
     }
 

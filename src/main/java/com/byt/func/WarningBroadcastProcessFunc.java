@@ -2,21 +2,19 @@ package com.byt.func;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.byt.pojo.TagKafkaInfo;
 import com.byt.pojo.TagProperties;
-import com.byt.protos.TagKafkaProtos;
-import com.byt.utils.MailUtil;
+import com.byt.utils.TimeUtil;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
 import org.apache.flink.api.common.state.ReadOnlyBroadcastState;
-import org.apache.flink.configuration.Configuration;
+import org.apache.flink.api.java.tuple.Tuple2;
+
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 
 /**
  * @title:
@@ -24,37 +22,66 @@ import java.util.Set;
  * @date: 2023/6/9 14:17
  **/
 public class WarningBroadcastProcessFunc extends BroadcastProcessFunction<Map<String,Set<String>>,String,String> {
-    private MapStateDescriptor<String, List<String>> mapStateDescriptor;
+    private MapStateDescriptor<String, TagProperties> mapStateDescriptor;
+    private OutputTag<Tuple2<String,String>> warningMsgTag;
 
 
-    public WarningBroadcastProcessFunc(MapStateDescriptor<String, List<String>> mapStateDescriptor) {
+    public WarningBroadcastProcessFunc(MapStateDescriptor<String, TagProperties> mapStateDescriptor, OutputTag<Tuple2<String,String>> warningMsgTag) {
         this.mapStateDescriptor = mapStateDescriptor;
+        this.warningMsgTag = warningMsgTag;
     }
 
-    @Override
-    public void open(Configuration parameters) throws Exception {
 
-    }
 
 
     @Override
     public void processElement(Map<String, Set<String>> value, BroadcastProcessFunction<Map<String, Set<String>>, String, String>.ReadOnlyContext ctx, Collector<String> out) throws Exception {
-        ReadOnlyBroadcastState<String, List<String>> broadcastState = ctx.getBroadcastState(mapStateDescriptor);
+        ReadOnlyBroadcastState<String, TagProperties> broadcastState = ctx.getBroadcastState(mapStateDescriptor);
         for (String key : value.keySet()) {
-            List<String> confNames = broadcastState.get(key);
-            System.out.println("conf:"+confNames);
-
+            //List<String> confNames = broadcastState.get(key);
+            TagProperties tagProperties = broadcastState.get(key);
+            //System.out.println("conf:"+confNames);
             Set<String> srcNames = value.get(key);
-            System.out.println("src:"+srcNames);
-            if (confNames!= null){
+            if (tagProperties != null){
+                String[] confNames = tagProperties.tag_name.split(",");
                 for (String confName : confNames) {
                     boolean flag = srcNames.contains(confName);
                     if (!flag){
-                        System.out.println(confName+"没有值输入，报警！！！！");
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("tag",confName);
+                        jsonObject.put("topic",tagProperties.tag_topic);
+                        jsonObject.put("send_period",tagProperties.send_period);
+                        jsonObject.put("send_times",tagProperties.send_times);
+                        jsonObject.put("msg",confName+"最近一个小时值为空！");
+                        jsonObject.put("ts",System.currentTimeMillis());
+                        jsonObject.put("time",TimeUtil.getCurrentTimeString());
+                        String msgKey = confName+"-"+ TimeUtil.getCurrentTimeStr();
+                        jsonObject.put("key",msgKey);
+                        ctx.output(warningMsgTag,Tuple2.of(msgKey,jsonObject.toJSONString()));
+                        //System.out.println(msgKey+"----"+jsonObject.toJSONString());
                     }
                 }
             }
-
+//            Set<String> srcNames = value.get(key);
+//            //System.out.println("src:"+srcNames);
+//            if (confNames!= null){
+//                for (String confName : confNames) {
+//                    boolean flag = srcNames.contains(confName);
+//                    if (!flag){
+//                        JSONObject jsonObject = new JSONObject();
+//                        jsonObject.put("tag",confName);
+//                        jsonObject.put("topic",tagProperties.tag_topic);
+//                        jsonObject.put("send_period",tagProperties.send_period);
+//                        jsonObject.put("send_times",tagProperties.send_times);
+//                        jsonObject.put("msg",confName+"最近一个小时值为空！");
+//                        jsonObject.put("ts",System.currentTimeMillis());
+//                        String msgKey = confName+"-"+ TimeUtil.getCurrentTimeStr();
+//                        jsonObject.put("key",msgKey);
+//                        ctx.output(warningMsgTag,Tuple2.of(msgKey,jsonObject.toJSONString()));
+//                        //System.out.println(msgKey+"----"+jsonObject.toJSONString());
+//                    }
+//                }
+//            }
         }
 
     }
@@ -63,12 +90,13 @@ public class WarningBroadcastProcessFunc extends BroadcastProcessFunction<Map<St
     public void processBroadcastElement(String value, BroadcastProcessFunction<Map<String, Set<String>>, String, String>.Context ctx, Collector<String> out) throws Exception {
         JSONObject jsonObject = JSONObject.parseObject(value);
         String confData = jsonObject.getString("after");
-        String opType = jsonObject.getString("op");
         TagProperties tagProperties = null;
         if (confData != null){
             tagProperties = JSON.parseObject(confData, TagProperties.class);
         }
-        BroadcastState<String, List<String>> broadcastState = ctx.getBroadcastState(mapStateDescriptor);
-        broadcastState.put(tagProperties.tag_topic, Arrays.asList(tagProperties.tag_name.split(",")));
+        BroadcastState<String, TagProperties> broadcastState = ctx.getBroadcastState(mapStateDescriptor);
+        broadcastState.put(tagProperties.tag_topic, tagProperties);
     }
+
+
 }

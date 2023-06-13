@@ -4,13 +4,20 @@ import com.byt.deserialization.ProtoKafkaDeserialization;
 import com.byt.pojo.TagKafkaInfo;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
+import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * @title: kafka 工具类
@@ -32,7 +39,7 @@ public class MyKafkaUtils {
      * @param groupId
      * @return
      */
-    public static FlinkKafkaConsumer<List<TagKafkaInfo>> getKafkaListConsumerWM(List<String> topic, String groupId) {
+    public static FlinkKafkaConsumer<List<TagKafkaInfo>> getKafkaListConsumer(List<String> topic, String groupId) {
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         FlinkKafkaConsumer<List<TagKafkaInfo>> kafkaConsumer = new FlinkKafkaConsumer<List<TagKafkaInfo>>(
                 topic,
@@ -40,22 +47,26 @@ public class MyKafkaUtils {
                 properties
         );
         // 分配水位线和提取时间戳
-        kafkaConsumer
-                // .setStartFromTimestamp(TimeUtil.getStartTime(startTime))
-                .assignTimestampsAndWatermarks(
-                        WatermarkStrategy.<List<TagKafkaInfo>>forBoundedOutOfOrderness(Duration.ofSeconds(1L))
-                                .withIdleness(Duration.ofSeconds(10L))
-                                .withTimestampAssigner(new SerializableTimestampAssigner<List<TagKafkaInfo>>() {
-                                    @Override
-                                    public long extractTimestamp(List<TagKafkaInfo> list, long l) {
-                                        if (list.size() > 0) {
-                                            return list.get(0).getTimestamp();
-                                        } else {
-                                            return 1606710000000L;
-                                        }
-                                    }
-                                })
-                );
         return kafkaConsumer;
+    }
+
+
+    public static <T> FlinkKafkaProducer<T> getKafkaSinkBySchema(KafkaSerializationSchema<T> kafkaSerializationSchema) {
+        return new FlinkKafkaProducer<T>(
+                defaultTopic,
+                kafkaSerializationSchema,
+                properties,
+                FlinkKafkaProducer.Semantic.AT_LEAST_ONCE
+        );
+    }
+
+    public static void main(String[] args) throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(1);
+        env
+                .addSource(MyKafkaUtils.getKafkaListConsumer(ConfigManager.getListProperty("kafka.ods.topic"), ConfigManager.getProperty("kafka.group.id")))
+                .print();
+
+        env.execute();
     }
 }
