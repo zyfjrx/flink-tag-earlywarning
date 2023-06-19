@@ -85,7 +85,4 @@ public class ConfigManager {
         return NumberUtils.toLong(getProperty(key));
     }
 
-
-
-
 }

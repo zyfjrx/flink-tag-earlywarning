@@ -9,7 +9,7 @@ import org.apache.flink.streaming.api.functions.async.RichAsyncFunction;
 import java.util.concurrent.ExecutorService;
 
 /**
- * @title:
+ * @title: 异步发送消息
  * @author: zhangyf
  * @date: 2023/6/13 9:42
  **/
