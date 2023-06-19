@@ -83,7 +83,7 @@ public class TagEarlyWarning {
         OutputTag<Tuple2<String, String>> warningMsgTag = new OutputTag<Tuple2<String, String>>("warningMsg") {
         };
 
-        // cdc读取配置数据
+        // cdc读取配置数据，广播配置数据
         BroadcastStream<String> mysqlCdcSource = env
                 .fromSource(FlinkCDC.getMysqlSource(), WatermarkStrategy.noWatermarks(), "mysql-cdc")
                 .broadcast(mapStateDescriptor);
